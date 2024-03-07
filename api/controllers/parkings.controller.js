@@ -36,3 +36,36 @@ export const parkCar = async (req, res, next) => {
 }
 
 
+export const unParkCar = async (req, res, next) => {
+  const { parkingLotId, registrationNumber } = req.body;
+
+  try {
+    const parkingLot = await ParkingLots.findOne({ id: parkingLotId, isActive: true });
+    if (!parkingLot) {
+      return next(errorHandler(400, "Parking lot is inactive"));
+    }
+
+    const parkedCar = await Parkings.findOneAndUpdate(
+      { parkingLotId, registrationNumber, status: 'PARKED' },
+      { status: 'LEFT' },
+      { new: true }
+    );
+
+    if (!parkedCar) {
+      return next(errorHandler(404, "No parked car found with the provided registration number"));
+    }
+
+    res.status(200).json({
+      isSuccess: true,
+      response: {
+        slotNumber: parkedCar.slotNumber,
+        registrationNumber: parkedCar.registrationNumber,
+        status: parkedCar.status,
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+router.delete('/Parkings', unParkCar);
